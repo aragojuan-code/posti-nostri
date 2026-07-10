@@ -85,16 +85,11 @@ function openForm(p=null){editingId=p?.id||null;currentStep=0;newPhotoFiles=[];f
 function updateStep(){$$('.form-step').forEach((x,i)=>x.classList.toggle('active',i===currentStep));$$('.stepper span').forEach((x,i)=>x.classList.toggle('active',i<=currentStep));$('#prevStep').classList.toggle('hidden',currentStep===0);$('#nextStep').classList.toggle('hidden',currentStep===3);$('#savePlace').classList.toggle('hidden',currentStep!==3)}
 function renderCriteria(){const pk=currentPerson(),data=formRatings[pk]||{},criteria=TYPES[$('#placeTypeSelect').value].criteria;$('.rating-person-toggle').innerHTML=`<button type="button" class="active">${profile.display_name}</button><button type="button" disabled>La otra valoración se añade desde su cuenta</button>`;$('#criteriaContainer').innerHTML=criteria.map(c=>{const d=data[c]||{score:0,note:''};return `<div class="criterion-card"><div class="criterion-head"><strong>${c}</strong><div class="stars" data-criterion="${escapeHtml(c)}">${[1,2,3,4,5].map(n=>`<button type="button" class="star ${n<=d.score?'selected':''}" data-score="${n}">★</button>`).join('')}</div></div><button type="button" class="criterion-note-toggle" data-note-toggle="${escapeHtml(c)}">${d.note?'Editar nota':'+ Añadir nota breve'}</button><input class="criterion-note ${d.note?'visible':''}" data-note="${escapeHtml(c)}" value="${escapeHtml(d.note)}" placeholder="¿Qué os gustó o no os gustó?"></div>`}).join('')}
 function setPrice(value) {
-  const price = Number(value);
-  $('#placeForm').elements.priceLevel.value = price;
-  $('#pricePicker').innerHTML = [1, 2, 3, 4, 5].map(n => `
-    <button
-      type="button"
-      data-price="${n}"
-      class="${n === price ? 'active' : ''}"
-      aria-pressed="${n === price ? 'true' : 'false'}"
-    >${euros(n)}</button>
-  `).join('');
+  const input = document.querySelector(
+    `#pricePicker input[name="priceLevel"][value="${Number(value)}"]`
+  );
+
+  if (input) input.checked = true;
 }
 function setReturn(v){$('#placeForm').elements.wouldReturn.value=v;$$('#returnPicker button').forEach(b=>b.classList.toggle('active',b.dataset.value===v))}
 function renderPhotos(){$('#photoPreview').innerHTML=[...formPhotos.map((x,i)=>`<div class="preview-item"><img src="${x.url}"><button type="button" data-remove-existing="${i}">×</button></div>`),...newPhotoFiles.map((x,i)=>`<div class="preview-item"><img src="${x.preview}"><button type="button" data-remove-new="${i}">×</button></div>`)].join('')}
@@ -234,12 +229,6 @@ document.addEventListener('click', event => {
   if (!accountWrap.contains(event.target)) {
     accountMenu.classList.add('hidden');
   }
-});$('#pricePicker').addEventListener('click', event => {
-  const button = event.target.closest('[data-price]');
-  if (!button) return;
-  event.preventDefault();
-  event.stopPropagation();
-  setPrice(button.dataset.price);
 });
 
 $('#placeTypeSelect').addEventListener('change',renderCriteria);$('#nextStep').addEventListener('click',()=>{if(currentStep===0){for(const n of ['name','date','city','country'])if(!$('#placeForm').elements[n].value.trim())return showToast('Completa los datos principales')}currentStep=Math.min(3,currentStep+1);updateStep()});$('#prevStep').addEventListener('click',()=>{currentStep=Math.max(0,currentStep-1);updateStep()});$('#placeForm').addEventListener('submit',submitPlace);$('#choosePhotos').addEventListener('click',()=>$('#photoInput').click());$('#photoInput').addEventListener('change',e=>handleFiles(e.target.files));$('#uploadZone').addEventListener('dragover',e=>e.preventDefault());$('#uploadZone').addEventListener('drop',e=>{e.preventDefault();handleFiles(e.dataTransfer.files)});

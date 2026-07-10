@@ -183,11 +183,31 @@
       </div>
 
       <div class="form-step" data-step="3">
-        <div class="form-field">
-          <span class="field-label">Nivel de precio</span>
-          <div class="price-picker" id="pricePicker" role="group" aria-label="Nivel de precio"></div>
-          <input type="hidden" name="priceLevel" value="3" />
-        </div>
+        <fieldset class="form-field price-field">
+          <legend class="field-label">Nivel de precio</legend>
+          <div class="price-picker" id="pricePicker" role="radiogroup" aria-label="Nivel de precio">
+            <label class="price-option">
+              <input type="radio" name="priceLevel" value="1" />
+              <span>€</span>
+            </label>
+            <label class="price-option">
+              <input type="radio" name="priceLevel" value="2" />
+              <span>€€</span>
+            </label>
+            <label class="price-option">
+              <input type="radio" name="priceLevel" value="3" checked />
+              <span>€€€</span>
+            </label>
+            <label class="price-option">
+              <input type="radio" name="priceLevel" value="4" />
+              <span>€€€€</span>
+            </label>
+            <label class="price-option">
+              <input type="radio" name="priceLevel" value="5" />
+              <span>€€€€€</span>
+            </label>
+          </div>
+        </fieldset>
         <label>Precio total aproximado (€)<input name="actualPrice" type="number" min="0" step="0.01" placeholder="Opcional" /></label>
         <label>Comentario general<textarea name="comment" rows="4" placeholder="Lo que queréis recordar de este lugar"></textarea></label>
         <label>¿Volveríamos?

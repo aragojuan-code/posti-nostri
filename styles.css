@@ -338,3 +338,77 @@ button:disabled { cursor: not-allowed; }
   .rank-meta { font-size: 12px; line-height: 1.25; }
   .rank-score { font-size: 15px; }
 }
+
+
+/* Native price selector: reliable on iPhone Safari */
+.price-field {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.price-field .field-label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.price-picker {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.price-option {
+  display: block;
+  min-width: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.price-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.price-option span {
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  padding: 10px 2px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.price-option input:checked + span {
+  background: var(--text);
+  color: white;
+  border-color: var(--text);
+}
+
+.price-option input:focus-visible + span {
+  outline: 3px solid rgba(119,139,122,.22);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .price-picker {
+    gap: 5px;
+  }
+
+  .price-option span {
+    min-height: 50px;
+    padding: 10px 1px;
+    font-size: 12px;
+  }
+}
