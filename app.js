@@ -107,6 +107,8 @@ function renderPhotos(){$('#photoPreview').innerHTML=[...formPhotos.map((x,i)=>`
 async function compressImage(file){return new Promise((resolve,reject)=>{const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{const max=1600,s=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);c.toBlob(blob=>{URL.revokeObjectURL(url);resolve(blob)},'image/webp',.82)};img.onerror=reject;img.src=url})}
 async function handleFiles(files){const room=3-formPhotos.length-newPhotoFiles.length;for(const file of [...files].slice(0,room)){if(!file.type.startsWith('image/'))continue;const blob=await compressImage(file);newPhotoFiles.push({blob,preview:URL.createObjectURL(blob)})}renderPhotos();if(files.length>room)showToast('Máximo 3 fotos')}
 
+
+
 async function submitPlace(e) {
   e.preventDefault();
 
@@ -126,15 +128,129 @@ async function submitPlace(e) {
   setBusy(true, 'Guardando lugar…');
 
   try {
-  const payload={name:f.get('name').trim(),type:f.get('type'),city:f.get('city').trim(),country:f.get('country').trim(),visited_at:f.get('date'),maps_url:f.get('mapsUrl').trim()||null,comment:f.get('comment').trim()||null,price_level:Number(f.get('priceLevel')),actual_price_eur:f.get('actualPrice')?Number(f.get('actualPrice')):null,would_return:f.get('wouldReturn'),created_by:session.user.id};
-  let id=editingId;
-  if(id){const {error}=await sb.from('places').update(payload).eq('id',id);if(error)throw error}else{const {data,error}=await sb.from('places').insert(payload).select('id').single();if(error)throw error;id=data.id}
-  const rows=Object.entries(formRatings[pk]||{}).filter(([,v])=>v.score).map(([criterion,v])=>({place_id:id,user_id:session.user.id,criterion,score:v.score,note:v.note||null}));
-  if(rows.length){const {error}=await sb.from('ratings').upsert(rows,{onConflict:'place_id,user_id,criterion'});if(error)throw error}
-  if(editingId){const original=places.find(p=>p.id===editingId);const kept=new Set(formPhotos.map(x=>x.path));const removed=(original?.photos||[]).filter(x=>!kept.has(x.path));if(removed.length){await sb.storage.from('place-photos').remove(removed.map(x=>x.path));await sb.from('place_photos').delete().in('storage_path',removed.map(x=>x.path))}}
-  for(let i=0;i<newPhotoFiles.length;i++){const position=formPhotos.length+i,path=`${session.user.id}/${id}/${crypto.randomUUID()}.webp`;const {error:uerr}=await sb.storage.from('place-photos').upload(path,newPhotoFiles[i].blob,{contentType:'image/webp'});if(uerr)throw uerr;const {error:merr}=await sb.from('place_photos').insert({place_id:id,storage_path:path,position,uploaded_by:session.user.id});if(merr)throw merr}
-  $('#placeDialog').close();await loadPlaces();renderAll();showToast(editingId?'Lugar actualizado':'Lugar guardado');
-}catch(err){console.error(err);showToast(err.message||'No se pudo guardar')}  } finally {
+    const payload = {
+      name: f.get('name').trim(),
+      type: f.get('type'),
+      city: f.get('city').trim(),
+      country: f.get('country').trim(),
+      visited_at: f.get('date'),
+      maps_url: f.get('mapsUrl').trim() || null,
+      comment: f.get('comment').trim() || null,
+      price_level: Number(f.get('priceLevel')),
+      actual_price_eur: f.get('actualPrice')
+        ? Number(f.get('actualPrice'))
+        : null,
+      would_return: f.get('wouldReturn'),
+      created_by: session.user.id
+    };
+
+    let id = editingId;
+
+    if (id) {
+      const { error } = await sb
+        .from('places')
+        .update(payload)
+        .eq('id', id);
+
+      if (error) throw error;
+    } else {
+      const { data, error } = await sb
+        .from('places')
+        .insert(payload)
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      id = data.id;
+    }
+
+    const rows = Object.entries(formRatings[pk] || {})
+      .filter(([, value]) => value.score)
+      .map(([criterion, value]) => ({
+        place_id: id,
+        user_id: session.user.id,
+        criterion,
+        score: value.score,
+        note: value.note || null
+      }));
+
+    if (rows.length) {
+      const { error } = await sb
+        .from('ratings')
+        .upsert(rows, {
+          onConflict: 'place_id,user_id,criterion'
+        });
+
+      if (error) throw error;
+    }
+
+    if (editingId) {
+      const original = places.find(place => place.id === editingId);
+      const keptPaths = new Set(formPhotos.map(photo => photo.path));
+
+      const removedPhotos = (original?.photos || []).filter(
+        photo => !keptPaths.has(photo.path)
+      );
+
+      if (removedPhotos.length) {
+        const removedPaths = removedPhotos.map(photo => photo.path);
+
+        const { error: storageError } = await sb.storage
+          .from('place-photos')
+          .remove(removedPaths);
+
+        if (storageError) throw storageError;
+
+        const { error: metadataError } = await sb
+          .from('place_photos')
+          .delete()
+          .in('storage_path', removedPaths);
+
+        if (metadataError) throw metadataError;
+      }
+    }
+
+    for (let i = 0; i < newPhotoFiles.length; i++) {
+      const position = formPhotos.length + i;
+
+      const path =
+        `${session.user.id}/${id}/${crypto.randomUUID()}.webp`;
+
+      const { error: uploadError } = await sb.storage
+        .from('place-photos')
+        .upload(path, newPhotoFiles[i].blob, {
+          contentType: 'image/webp'
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { error: metadataError } = await sb
+        .from('place_photos')
+        .insert({
+          place_id: id,
+          storage_path: path,
+          position,
+          uploaded_by: session.user.id
+        });
+
+      if (metadataError) throw metadataError;
+    }
+
+    $('#placeDialog').close();
+
+    await loadPlaces();
+    renderAll();
+
+    showToast(
+      editingId
+        ? 'Lugar actualizado'
+        : 'Lugar guardado'
+    );
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || 'No se pudo guardar');
+  } finally {
     isSavingPlace = false;
     saveButton.disabled = false;
     saveButton.textContent = originalButtonText;
