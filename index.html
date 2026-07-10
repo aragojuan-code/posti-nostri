@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f7f5f0" />
+  <title>Posti Nostri</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <button class="brand" data-nav="home" aria-label="Inicio">
+        <span class="brand-mark">P</span>
+        <span>
+          <strong>Posti Nostri</strong>
+          <small>Juan & Rosi</small>
+        </span>
+      </button>
+      <div class="top-actions">
+        <button class="icon-btn" id="searchToggle" aria-label="Buscar">⌕</button>
+        <button class="profile-pill" id="profileToggle" aria-label="Cambiar perfil">
+          <span id="activeProfileInitial">J</span>
+          <span id="activeProfileName">Juan</span>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section id="homeView" class="view active">
+        <div class="hero">
+          <p class="eyebrow">Vuestros lugares, bien guardados</p>
+          <h1>Recuerdos que merecen volver.</h1>
+          <p>Restaurantes, hoteles, heladerías, naturaleza y experiencias compartidas.</p>
+        </div>
+
+        <div class="search-wrap hidden" id="searchWrap">
+          <input id="searchInput" type="search" placeholder="Buscar por nombre, ciudad o país" autocomplete="off" />
+        </div>
+
+        <nav class="chips" id="typeChips" aria-label="Tipos de lugar"></nav>
+
+        <section class="section-block">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Colección</p>
+              <h2 id="collectionTitle">Todos los lugares</h2>
+            </div>
+            <button class="text-btn" data-nav="rankings">Ver rankings</button>
+          </div>
+          <div id="placesGrid" class="places-grid"></div>
+          <div id="emptyState" class="empty-state hidden">
+            <div class="empty-icon">⌖</div>
+            <h3>Aún no hay lugares aquí</h3>
+            <p>Añade vuestro primer recuerdo para empezar la colección.</p>
+            <button class="primary-btn" data-action="add-place">Añadir lugar</button>
+          </div>
+        </section>
+      </section>
+
+      <section id="exploreView" class="view">
+        <div class="page-heading">
+          <p class="eyebrow">Explorar</p>
+          <h1>Encuentra un recuerdo</h1>
+        </div>
+        <div class="filter-panel">
+          <input id="exploreSearch" type="search" placeholder="Nombre, ciudad o país" />
+          <select id="countryFilter"><option value="">Todos los países</option></select>
+          <select id="cityFilter"><option value="">Todas las ciudades</option></select>
+          <select id="priceFilter">
+            <option value="">Cualquier precio</option>
+            <option value="1">€</option><option value="2">€€</option><option value="3">€€€</option><option value="4">€€€€</option><option value="5">€€€€€</option>
+          </select>
+          <select id="returnFilter">
+            <option value="">¿Volveríamos?</option>
+            <option value="yes">Sí</option><option value="maybe">Quizá</option><option value="no">No</option>
+          </select>
+          <button class="secondary-btn" id="clearFilters">Limpiar</button>
+        </div>
+        <div id="exploreGrid" class="places-grid"></div>
+      </section>
+
+      <section id="rankingsView" class="view">
+        <div class="page-heading split-heading">
+          <div>
+            <p class="eyebrow">Top 10</p>
+            <h1>Rankings</h1>
+          </div>
+          <div class="ranking-controls">
+            <select id="rankingType"></select>
+            <select id="rankingCriterion"></select>
+          </div>
+        </div>
+        <div id="rankingList" class="ranking-list"></div>
+      </section>
+
+      <section id="profileView" class="view">
+        <div class="page-heading">
+          <p class="eyebrow">Resumen</p>
+          <h1>Vuestra colección</h1>
+        </div>
+        <div id="statsGrid" class="stats-grid"></div>
+        <section class="section-block">
+          <div class="section-heading"><div><p class="eyebrow">Actividad</p><h2>Últimos lugares</h2></div></div>
+          <div id="recentList" class="recent-list"></div>
+        </section>
+      </section>
+    </main>
+
+    <button class="floating-add" data-action="add-place" aria-label="Añadir lugar">+</button>
+
+    <nav class="bottom-nav">
+      <button data-nav="home" class="active"><span>⌂</span><small>Inicio</small></button>
+      <button data-nav="explore"><span>⌕</span><small>Explorar</small></button>
+      <button data-nav="rankings"><span>♕</span><small>Rankings</small></button>
+      <button data-nav="profile"><span>○</span><small>Resumen</small></button>
+    </nav>
+  </div>
+
+  <dialog id="placeDialog" class="modal place-modal">
+    <form method="dialog" class="modal-card" id="placeForm">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow" id="formEyebrow">Nuevo recuerdo</p>
+          <h2 id="formTitle">Añadir lugar</h2>
+        </div>
+        <button type="button" class="icon-btn" data-close="placeDialog">×</button>
+      </div>
+
+      <div class="stepper"><span class="active"></span><span></span><span></span><span></span></div>
+
+      <div class="form-step active" data-step="0">
+        <label>Nombre<input name="name" required placeholder="Ej. Civico 90" /></label>
+        <div class="two-col">
+          <label>Tipo<select name="type" id="placeTypeSelect" required></select></label>
+          <label>Fecha<input type="date" name="date" required /></label>
+        </div>
+        <div class="two-col">
+          <label>Ciudad<input name="city" required placeholder="Roma" /></label>
+          <label>País<input name="country" required placeholder="Italia" /></label>
+        </div>
+        <label>Enlace de Google Maps<input name="mapsUrl" type="url" placeholder="https://maps.google.com/..." /></label>
+      </div>
+
+      <div class="form-step" data-step="1">
+        <div class="upload-zone" id="uploadZone">
+          <input id="photoInput" type="file" accept="image/*" multiple hidden />
+          <div class="upload-icon">＋</div>
+          <h3>Subir fotos</h3>
+          <p>Hasta 3 imágenes. Puedes elegirlas desde la galería o la cámara.</p>
+          <button type="button" class="secondary-btn" id="choosePhotos">Elegir fotos</button>
+        </div>
+        <div id="photoPreview" class="photo-preview"></div>
+      </div>
+
+      <div class="form-step" data-step="2">
+        <div class="rating-person-toggle">
+          <button type="button" data-person="juan" class="active">Juan</button>
+          <button type="button" data-person="rosi">Rosi</button>
+        </div>
+        <div id="criteriaContainer" class="criteria-list"></div>
+      </div>
+
+      <div class="form-step" data-step="3">
+        <label>Nivel de precio
+          <div class="price-picker" id="pricePicker"></div>
+          <input type="hidden" name="priceLevel" value="3" />
+        </label>
+        <label>Precio total aproximado (€)<input name="actualPrice" type="number" min="0" step="0.01" placeholder="Opcional" /></label>
+        <label>Comentario general<textarea name="comment" rows="4" placeholder="Lo que queréis recordar de este lugar"></textarea></label>
+        <label>¿Volveríamos?
+          <div class="segmented" id="returnPicker">
+            <button type="button" data-value="yes">Sí</button>
+            <button type="button" data-value="maybe" class="active">Quizá</button>
+            <button type="button" data-value="no">No</button>
+          </div>
+          <input type="hidden" name="wouldReturn" value="maybe" />
+        </label>
+      </div>
+
+      <div class="form-footer">
+        <button type="button" class="text-btn hidden" id="prevStep">Atrás</button>
+        <div class="spacer"></div>
+        <button type="button" class="primary-btn" id="nextStep">Continuar</button>
+        <button type="submit" class="primary-btn hidden" id="savePlace">Guardar lugar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="detailDialog" class="modal detail-modal">
+    <article class="detail-card">
+      <button class="detail-close icon-btn" data-close="detailDialog">×</button>
+      <div id="detailContent"></div>
+    </article>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
