@@ -83,7 +83,24 @@ function updateProfileUI(){const n=profile?.display_name||'Usuario';$('#activePr
 function openForm(p=null){editingId=p?.id||null;currentStep=0;newPhotoFiles=[];formPhotos=p?.photos?[...p.photos]:[];formRatings=p?structuredClone(p.ratings):{juan:{},rosi:{}};const f=$('#placeForm');f.reset();f.elements.date.value=p?.date||new Date().toISOString().slice(0,10);f.elements.name.value=p?.name||'';f.elements.type.value=p?.type||'restaurant';f.elements.city.value=p?.city||'';f.elements.country.value=p?.country||'';f.elements.mapsUrl.value=p?.mapsUrl||'';f.elements.actualPrice.value=p?.actualPrice??'';f.elements.comment.value=p?.comment||'';setPrice(p?.priceLevel||3);setReturn(p?.wouldReturn||'maybe');$('#formTitle').textContent=p?'Editar lugar':'Añadir lugar';renderPhotos();renderCriteria();updateStep();$('#placeDialog').showModal()}
 function updateStep(){$$('.form-step').forEach((x,i)=>x.classList.toggle('active',i===currentStep));$$('.stepper span').forEach((x,i)=>x.classList.toggle('active',i<=currentStep));$('#prevStep').classList.toggle('hidden',currentStep===0);$('#nextStep').classList.toggle('hidden',currentStep===3);$('#savePlace').classList.toggle('hidden',currentStep!==3)}
 function renderCriteria(){const pk=currentPerson(),data=formRatings[pk]||{},criteria=TYPES[$('#placeTypeSelect').value].criteria;$('.rating-person-toggle').innerHTML=`<button type="button" class="active">${profile.display_name}</button><button type="button" disabled>La otra valoración se añade desde su cuenta</button>`;$('#criteriaContainer').innerHTML=criteria.map(c=>{const d=data[c]||{score:0,note:''};return `<div class="criterion-card"><div class="criterion-head"><strong>${c}</strong><div class="stars" data-criterion="${escapeHtml(c)}">${[1,2,3,4,5].map(n=>`<button type="button" class="star ${n<=d.score?'selected':''}" data-score="${n}">★</button>`).join('')}</div></div><button type="button" class="criterion-note-toggle" data-note-toggle="${escapeHtml(c)}">${d.note?'Editar nota':'+ Añadir nota breve'}</button><input class="criterion-note ${d.note?'visible':''}" data-note="${escapeHtml(c)}" value="${escapeHtml(d.note)}" placeholder="¿Qué os gustó o no os gustó?"></div>`}).join('')}
-function setPrice(v){$('#placeForm').elements.priceLevel.value=v;$('#pricePicker').innerHTML=[1,2,3,4,5].map(n=>`<button type="button" data-price="${n}" class="${n===Number(v)?'active':''}">${euros(n)}</button>`).join('')}
+function setPrice(v) {
+  $('#placeForm').elements.priceLevel.value = v;
+
+  $('#pricePicker').innerHTML = [1, 2, 3, 4, 5]
+    .map(
+      n => `
+        <button
+          type="button"
+          data-price="${n}"
+          class="${n === Number(v) ? 'active' : ''}"
+          aria-pressed="${n === Number(v)}"
+        >
+          ${euros(n)}
+        </button>
+      `
+    )
+    .join('');
+}
 function setReturn(v){$('#placeForm').elements.wouldReturn.value=v;$$('#returnPicker button').forEach(b=>b.classList.toggle('active',b.dataset.value===v))}
 function renderPhotos(){$('#photoPreview').innerHTML=[...formPhotos.map((x,i)=>`<div class="preview-item"><img src="${x.url}"><button type="button" data-remove-existing="${i}">×</button></div>`),...newPhotoFiles.map((x,i)=>`<div class="preview-item"><img src="${x.preview}"><button type="button" data-remove-new="${i}">×</button></div>`)].join('')}
 async function compressImage(file){return new Promise((resolve,reject)=>{const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{const max=1600,s=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);c.toBlob(blob=>{URL.revokeObjectURL(url);resolve(blob)},'image/webp',.82)};img.onerror=reject;img.src=url})}
