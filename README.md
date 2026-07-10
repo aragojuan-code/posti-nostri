@@ -1,32 +1,19 @@
 # Posti Nostri
 
-Prototipo funcional de una colección privada de lugares visitados por Juan y Rosi.
+Aplicación privada para guardar y valorar los lugares visitados por Juan y Rosi.
 
-## Abrir
+## Supabase
 
-Abre `index.html` en un navegador moderno. No necesita instalación.
+La app está conectada al proyecto Supabase de Posti Nostri mediante la URL y la clave pública. Usa:
 
-## Incluye
+- Authentication: correo y contraseña
+- Tables: `profiles`, `places`, `ratings`, `place_photos`
+- Storage bucket privado: `place-photos`
 
-- Diseño responsive inspirado en Airbnb/Instagram.
-- Restaurantes, hoteles, heladerías, cafeterías, bares, naturaleza, experiencias y otros.
-- Valoraciones separadas de Juan y Rosi.
-- Estrellas enteras del 1 al 5 y nota breve por criterio.
-- Nota conjunta automática, incluyendo el precio invertido.
-- Ranking general, por calidad-precio, precio, factor especial y criterios específicos.
-- Hasta tres fotos por lugar, con compresión automática.
-- Filtros, buscador, ficha detallada y campo “¿Volveríamos?”.
-- Persistencia local mediante `localStorage`.
+## Publicación
 
-## Siguiente paso: Supabase
+Publica los archivos `index.html`, `styles.css` y `app.js` en la raíz del proyecto de Vercel.
 
-La interfaz está desacoplada de la persistencia. Para pasar a Supabase se sustituirían `loadPlaces()` y `savePlaces()` por consultas a las tablas y la subida Base64 por Supabase Storage.
+## Seguridad
 
-Estructura recomendada:
-
-- `profiles`
-- `places`
-- `ratings`
-- `place_photos`
-
-Las fotos deberían guardarse en un bucket `place-photos`, con políticas RLS limitadas a Juan y Rosi.
+La clave incluida es la clave pública `sb_publishable_...`. No añadas nunca una clave `service_role` o `sb_secret_` al frontend.
