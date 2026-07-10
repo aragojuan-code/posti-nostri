@@ -466,5 +466,12 @@ textarea {
 
   .rank-score {
     font-size: 15px;
-  }
+  }button:disabled {
+  cursor: not-allowed;
+}
+
+#savePlace:disabled {
+  opacity: 0.65;
+  pointer-events: none;
+}
 }
