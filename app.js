@@ -14,6 +14,7 @@ const TYPES = {
 };
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 let session=null, profile=null, profiles={}, places=[], activeType='all', currentStep=0, editingId=null;
+let isSavingPlace = false;
 let formRatings={juan:{},rosi:{}}, formPhotos=[], newPhotoFiles=[];
 const euros=n=>'€'.repeat(Number(n||1));
 const escapeHtml=(v='')=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -106,7 +107,25 @@ function renderPhotos(){$('#photoPreview').innerHTML=[...formPhotos.map((x,i)=>`
 async function compressImage(file){return new Promise((resolve,reject)=>{const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{const max=1600,s=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);c.toBlob(blob=>{URL.revokeObjectURL(url);resolve(blob)},'image/webp',.82)};img.onerror=reject;img.src=url})}
 async function handleFiles(files){const room=3-formPhotos.length-newPhotoFiles.length;for(const file of [...files].slice(0,room)){if(!file.type.startsWith('image/'))continue;const blob=await compressImage(file);newPhotoFiles.push({blob,preview:URL.createObjectURL(blob)})}renderPhotos();if(files.length>room)showToast('Máximo 3 fotos')}
 
-async function submitPlace(e){e.preventDefault();const f=new FormData(e.currentTarget),pk=currentPerson();setBusy(true,'Guardando lugar…');try{
+async function submitPlace(e) {
+  e.preventDefault();
+
+  if (isSavingPlace) return;
+
+  isSavingPlace = true;
+
+  const saveButton = $('#savePlace');
+  const originalButtonText = saveButton.textContent;
+
+  saveButton.disabled = true;
+  saveButton.textContent = 'Guardando…';
+
+  const f = new FormData(e.currentTarget);
+  const pk = currentPerson();
+
+  setBusy(true, 'Guardando lugar…');
+
+  try {
   const payload={name:f.get('name').trim(),type:f.get('type'),city:f.get('city').trim(),country:f.get('country').trim(),visited_at:f.get('date'),maps_url:f.get('mapsUrl').trim()||null,comment:f.get('comment').trim()||null,price_level:Number(f.get('priceLevel')),actual_price_eur:f.get('actualPrice')?Number(f.get('actualPrice')):null,would_return:f.get('wouldReturn'),created_by:session.user.id};
   let id=editingId;
   if(id){const {error}=await sb.from('places').update(payload).eq('id',id);if(error)throw error}else{const {data,error}=await sb.from('places').insert(payload).select('id').single();if(error)throw error;id=data.id}
@@ -115,7 +134,13 @@ async function submitPlace(e){e.preventDefault();const f=new FormData(e.currentT
   if(editingId){const original=places.find(p=>p.id===editingId);const kept=new Set(formPhotos.map(x=>x.path));const removed=(original?.photos||[]).filter(x=>!kept.has(x.path));if(removed.length){await sb.storage.from('place-photos').remove(removed.map(x=>x.path));await sb.from('place_photos').delete().in('storage_path',removed.map(x=>x.path))}}
   for(let i=0;i<newPhotoFiles.length;i++){const position=formPhotos.length+i,path=`${session.user.id}/${id}/${crypto.randomUUID()}.webp`;const {error:uerr}=await sb.storage.from('place-photos').upload(path,newPhotoFiles[i].blob,{contentType:'image/webp'});if(uerr)throw uerr;const {error:merr}=await sb.from('place_photos').insert({place_id:id,storage_path:path,position,uploaded_by:session.user.id});if(merr)throw merr}
   $('#placeDialog').close();await loadPlaces();renderAll();showToast(editingId?'Lugar actualizado':'Lugar guardado');
-}catch(err){console.error(err);showToast(err.message||'No se pudo guardar')}finally{setBusy(false)}}
+}catch(err){console.error(err);showToast(err.message||'No se pudo guardar')}  } finally {
+    isSavingPlace = false;
+    saveButton.disabled = false;
+    saveButton.textContent = originalButtonText;
+    setBusy(false);
+  }
+}
 
 function openDetail(id){const p=places.find(x=>x.id===id);if(!p)return;const gallery=p.photos.length?`<div class="detail-gallery ${p.photos.length===1?'single':''}">${p.photos.map(x=>`<img src="${x.url}">`).join('')}</div>`:`<div class="detail-gallery single"><div class="card-placeholder">${TYPES[p.type].icon}</div></div>`;const criteria=TYPES[p.type].criteria;$('#detailContent').innerHTML=`${gallery}<div class="detail-body"><div class="detail-kicker">${TYPES[p.type].singular} · ${new Date(p.date+'T12:00').toLocaleDateString('es-ES')}</div><div class="detail-title-row"><div><h2>${escapeHtml(p.name)}</h2><p class="card-meta">${escapeHtml(p.city)}, ${escapeHtml(p.country)}</p></div><div class="big-score">★ ${jointAverage(p).toFixed(2)}</div></div><div class="detail-summary"><span class="summary-pill">${euros(p.priceLevel)}</span><span class="summary-pill">Volveríamos: ${{yes:'Sí',maybe:'Quizá',no:'No'}[p.wouldReturn]}</span></div><div class="person-scores"><div class="person-score"><span>Conjunta</span><strong>${jointAverage(p).toFixed(2)}</strong></div><div class="person-score"><span>Juan</span><strong>${personAverage(p,'juan').toFixed(2)}</strong></div><div class="person-score"><span>Rosi</span><strong>${personAverage(p,'rosi').toFixed(2)}</strong></div></div><div class="detail-criteria">${criteria.map(c=>`<details class="detail-criterion"><summary><span>${c}</span><strong>★ ${jointCriterion(p,c).toFixed(1)}</strong></summary><div class="detail-criterion-content"><div><strong>Juan · ${criterionAverage(p,'juan',c)||'—'}</strong><br>${escapeHtml(p.ratings.juan[c]?.note||'Sin nota')}</div><div><strong>Rosi · ${criterionAverage(p,'rosi',c)||'—'}</strong><br>${escapeHtml(p.ratings.rosi[c]?.note||'Sin nota')}</div></div></details>`).join('')}</div>${p.comment?`<p class="detail-comment">${escapeHtml(p.comment)}</p>`:''}<div class="detail-actions">${p.mapsUrl?`<a class="secondary-btn" href="${p.mapsUrl}" target="_blank">Abrir en Maps</a>`:''}<button class="secondary-btn" data-edit-place="${p.id}">Editar</button><button class="danger-btn" data-delete-place="${p.id}">Eliminar</button></div></div>`;$('#detailDialog').showModal()}
 async function deletePlace(id){if(!confirm('¿Eliminar este lugar?'))return;setBusy(true,'Eliminando…');const p=places.find(x=>x.id===id);if(p?.photos.length)await sb.storage.from('place-photos').remove(p.photos.map(x=>x.path));const {error}=await sb.from('places').delete().eq('id',id);setBusy(false);if(error)return showToast(error.message);$('#detailDialog').close();await loadPlaces();renderAll();showToast('Lugar eliminado')}
