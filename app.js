@@ -84,47 +84,35 @@ function updateProfileUI(){const n=profile?.display_name||'Usuario';$('#activePr
 function openForm(p=null){editingId=p?.id||null;currentStep=0;newPhotoFiles=[];formPhotos=p?.photos?[...p.photos]:[];formRatings=p?structuredClone(p.ratings):{juan:{},rosi:{}};const f=$('#placeForm');f.reset();f.elements.date.value=p?.date||new Date().toISOString().slice(0,10);f.elements.name.value=p?.name||'';f.elements.type.value=p?.type||'restaurant';f.elements.city.value=p?.city||'';f.elements.country.value=p?.country||'';f.elements.mapsUrl.value=p?.mapsUrl||'';f.elements.actualPrice.value=p?.actualPrice??'';f.elements.comment.value=p?.comment||'';setPrice(p?.priceLevel||3);setReturn(p?.wouldReturn||'maybe');$('#formTitle').textContent=p?'Editar lugar':'Añadir lugar';renderPhotos();renderCriteria();updateStep();$('#placeDialog').showModal()}
 function updateStep(){$$('.form-step').forEach((x,i)=>x.classList.toggle('active',i===currentStep));$$('.stepper span').forEach((x,i)=>x.classList.toggle('active',i<=currentStep));$('#prevStep').classList.toggle('hidden',currentStep===0);$('#nextStep').classList.toggle('hidden',currentStep===3);$('#savePlace').classList.toggle('hidden',currentStep!==3)}
 function renderCriteria(){const pk=currentPerson(),data=formRatings[pk]||{},criteria=TYPES[$('#placeTypeSelect').value].criteria;$('.rating-person-toggle').innerHTML=`<button type="button" class="active">${profile.display_name}</button><button type="button" disabled>La otra valoración se añade desde su cuenta</button>`;$('#criteriaContainer').innerHTML=criteria.map(c=>{const d=data[c]||{score:0,note:''};return `<div class="criterion-card"><div class="criterion-head"><strong>${c}</strong><div class="stars" data-criterion="${escapeHtml(c)}">${[1,2,3,4,5].map(n=>`<button type="button" class="star ${n<=d.score?'selected':''}" data-score="${n}">★</button>`).join('')}</div></div><button type="button" class="criterion-note-toggle" data-note-toggle="${escapeHtml(c)}">${d.note?'Editar nota':'+ Añadir nota breve'}</button><input class="criterion-note ${d.note?'visible':''}" data-note="${escapeHtml(c)}" value="${escapeHtml(d.note)}" placeholder="¿Qué os gustó o no os gustó?"></div>`}).join('')}
-function setPrice(v) {
-  $('#placeForm').elements.priceLevel.value = v;
-
-  $('#pricePicker').innerHTML = [1, 2, 3, 4, 5]
-    .map(
-      n => `
-        <button
-          type="button"
-          data-price="${n}"
-          class="${n === Number(v) ? 'active' : ''}"
-          aria-pressed="${n === Number(v)}"
-        >
-          ${euros(n)}
-        </button>
-      `
-    )
-    .join('');
+function setPrice(value) {
+  const price = Number(value);
+  $('#placeForm').elements.priceLevel.value = price;
+  $('#pricePicker').innerHTML = [1, 2, 3, 4, 5].map(n => `
+    <button
+      type="button"
+      data-price="${n}"
+      class="${n === price ? 'active' : ''}"
+      aria-pressed="${n === price ? 'true' : 'false'}"
+    >${euros(n)}</button>
+  `).join('');
 }
 function setReturn(v){$('#placeForm').elements.wouldReturn.value=v;$$('#returnPicker button').forEach(b=>b.classList.toggle('active',b.dataset.value===v))}
 function renderPhotos(){$('#photoPreview').innerHTML=[...formPhotos.map((x,i)=>`<div class="preview-item"><img src="${x.url}"><button type="button" data-remove-existing="${i}">×</button></div>`),...newPhotoFiles.map((x,i)=>`<div class="preview-item"><img src="${x.preview}"><button type="button" data-remove-new="${i}">×</button></div>`)].join('')}
 async function compressImage(file){return new Promise((resolve,reject)=>{const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{const max=1600,s=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);c.toBlob(blob=>{URL.revokeObjectURL(url);resolve(blob)},'image/webp',.82)};img.onerror=reject;img.src=url})}
 async function handleFiles(files){const room=3-formPhotos.length-newPhotoFiles.length;for(const file of [...files].slice(0,room)){if(!file.type.startsWith('image/'))continue;const blob=await compressImage(file);newPhotoFiles.push({blob,preview:URL.createObjectURL(blob)})}renderPhotos();if(files.length>room)showToast('Máximo 3 fotos')}
 
-
-
 async function submitPlace(e) {
   e.preventDefault();
-
   if (isSavingPlace) return;
 
   isSavingPlace = true;
-
   const saveButton = $('#savePlace');
   const originalButtonText = saveButton.textContent;
-
   saveButton.disabled = true;
   saveButton.textContent = 'Guardando…';
 
   const f = new FormData(e.currentTarget);
   const pk = currentPerson();
-
   setBusy(true, 'Guardando lugar…');
 
   try {
@@ -137,9 +125,7 @@ async function submitPlace(e) {
       maps_url: f.get('mapsUrl').trim() || null,
       comment: f.get('comment').trim() || null,
       price_level: Number(f.get('priceLevel')),
-      actual_price_eur: f.get('actualPrice')
-        ? Number(f.get('actualPrice'))
-        : null,
+      actual_price_eur: f.get('actualPrice') ? Number(f.get('actualPrice')) : null,
       would_return: f.get('wouldReturn'),
       created_by: session.user.id
     };
@@ -147,21 +133,11 @@ async function submitPlace(e) {
     let id = editingId;
 
     if (id) {
-      const { error } = await sb
-        .from('places')
-        .update(payload)
-        .eq('id', id);
-
+      const { error } = await sb.from('places').update(payload).eq('id', id);
       if (error) throw error;
     } else {
-      const { data, error } = await sb
-        .from('places')
-        .insert(payload)
-        .select('id')
-        .single();
-
+      const { data, error } = await sb.from('places').insert(payload).select('id').single();
       if (error) throw error;
-
       id = data.id;
     }
 
@@ -176,77 +152,52 @@ async function submitPlace(e) {
       }));
 
     if (rows.length) {
-      const { error } = await sb
-        .from('ratings')
-        .upsert(rows, {
-          onConflict: 'place_id,user_id,criterion'
-        });
-
+      const { error } = await sb.from('ratings').upsert(rows, {
+        onConflict: 'place_id,user_id,criterion'
+      });
       if (error) throw error;
     }
 
     if (editingId) {
       const original = places.find(place => place.id === editingId);
       const keptPaths = new Set(formPhotos.map(photo => photo.path));
-
-      const removedPhotos = (original?.photos || []).filter(
-        photo => !keptPaths.has(photo.path)
-      );
+      const removedPhotos = (original?.photos || []).filter(photo => !keptPaths.has(photo.path));
 
       if (removedPhotos.length) {
         const removedPaths = removedPhotos.map(photo => photo.path);
-
-        const { error: storageError } = await sb.storage
-          .from('place-photos')
-          .remove(removedPaths);
-
+        const { error: storageError } = await sb.storage.from('place-photos').remove(removedPaths);
         if (storageError) throw storageError;
 
         const { error: metadataError } = await sb
           .from('place_photos')
           .delete()
           .in('storage_path', removedPaths);
-
         if (metadataError) throw metadataError;
       }
     }
 
     for (let i = 0; i < newPhotoFiles.length; i++) {
       const position = formPhotos.length + i;
-
-      const path =
-        `${session.user.id}/${id}/${crypto.randomUUID()}.webp`;
+      const path = `${session.user.id}/${id}/${crypto.randomUUID()}.webp`;
 
       const { error: uploadError } = await sb.storage
         .from('place-photos')
-        .upload(path, newPhotoFiles[i].blob, {
-          contentType: 'image/webp'
-        });
-
+        .upload(path, newPhotoFiles[i].blob, { contentType: 'image/webp' });
       if (uploadError) throw uploadError;
 
-      const { error: metadataError } = await sb
-        .from('place_photos')
-        .insert({
-          place_id: id,
-          storage_path: path,
-          position,
-          uploaded_by: session.user.id
-        });
-
+      const { error: metadataError } = await sb.from('place_photos').insert({
+        place_id: id,
+        storage_path: path,
+        position,
+        uploaded_by: session.user.id
+      });
       if (metadataError) throw metadataError;
     }
 
     $('#placeDialog').close();
-
     await loadPlaces();
     renderAll();
-
-    showToast(
-      editingId
-        ? 'Lugar actualizado'
-        : 'Lugar guardado'
-    );
+    showToast(editingId ? 'Lugar actualizado' : 'Lugar guardado');
   } catch (error) {
     console.error(error);
     showToast(error.message || 'No se pudo guardar');
@@ -263,13 +214,14 @@ async function deletePlace(id){if(!confirm('¿Eliminar este lugar?'))return;setB
 
 $('#authForm').addEventListener('submit',async e=>{e.preventDefault();const fd=new FormData(e.currentTarget);$('#authError').textContent='';const {data,error}=await sb.auth.signInWithPassword({email:fd.get('email'),password:fd.get('password')});if(error){$('#authError').textContent='Correo o contraseña incorrectos';return}await enterApp(data.session)});
 $('#logoutBtn').addEventListener('click',async()=>{await sb.auth.signOut();showAuth()});
-document.addEventListener('click',e=>{const nav=e.target.closest('[data-nav]');if(nav)navigate(nav.dataset.nav);if(e.target.closest('[data-action="add-place"]'))openForm();const card=e.target.closest('[data-place-id]');if(card)openDetail(card.dataset.placeId);const chip=e.target.closest('[data-type]');if(chip){activeType=chip.dataset.type;renderTypeControls();renderHome()}const close=e.target.closest('[data-close]');if(close)document.getElementById(close.dataset.close).close();const star=e.target.closest('.star');if(star){const c=star.parentElement.dataset.criterion,pk=currentPerson();formRatings[pk][c]=formRatings[pk][c]||{score:0,note:''};formRatings[pk][c].score=Number(star.dataset.score);renderCriteria()}const nt=e.target.closest('[data-note-toggle]');if(nt)$(`[data-note="${CSS.escape(nt.dataset.noteToggle)}"]`).classList.toggle('visible');const pp=e.target.closest('[data-price]');if(pp)setPrice(pp.dataset.price);const rt=e.target.closest('#returnPicker [data-value]');if(rt)setReturn(rt.dataset.value);const re=e.target.closest('[data-remove-existing]');if(re){formPhotos.splice(Number(re.dataset.removeExisting),1);renderPhotos()}const rn=e.target.closest('[data-remove-new]');if(rn){newPhotoFiles.splice(Number(rn.dataset.removeNew),1);renderPhotos()}const ed=e.target.closest('[data-edit-place]');if(ed){$('#detailDialog').close();openForm(places.find(p=>p.id===ed.dataset.editPlace))}const del=e.target.closest('[data-delete-place]');if(del)deletePlace(del.dataset.deletePlace)});
+document.addEventListener('click',e=>{const nav=e.target.closest('[data-nav]');if(nav)navigate(nav.dataset.nav);if(e.target.closest('[data-action="add-place"]'))openForm();const card=e.target.closest('[data-place-id]');if(card)openDetail(card.dataset.placeId);const chip=e.target.closest('[data-type]');if(chip){activeType=chip.dataset.type;renderTypeControls();renderHome()}const close=e.target.closest('[data-close]');if(close)document.getElementById(close.dataset.close).close();const star=e.target.closest('.star');if(star){const c=star.parentElement.dataset.criterion,pk=currentPerson();formRatings[pk][c]=formRatings[pk][c]||{score:0,note:''};formRatings[pk][c].score=Number(star.dataset.score);renderCriteria()}const nt=e.target.closest('[data-note-toggle]');if(nt)$(`[data-note="${CSS.escape(nt.dataset.noteToggle)}"]`).classList.toggle('visible');const rt=e.target.closest('#returnPicker [data-value]');if(rt)setReturn(rt.dataset.value);const re=e.target.closest('[data-remove-existing]');if(re){formPhotos.splice(Number(re.dataset.removeExisting),1);renderPhotos()}const rn=e.target.closest('[data-remove-new]');if(rn){newPhotoFiles.splice(Number(rn.dataset.removeNew),1);renderPhotos()}const ed=e.target.closest('[data-edit-place]');if(ed){$('#detailDialog').close();openForm(places.find(p=>p.id===ed.dataset.editPlace))}const del=e.target.closest('[data-delete-place]');if(del)deletePlace(del.dataset.deletePlace)});
 document.addEventListener('input',e=>{if(e.target.matches('[data-note]')){const pk=currentPerson(),c=e.target.dataset.note;formRatings[pk][c]=formRatings[pk][c]||{score:0,note:''};formRatings[pk][c].note=e.target.value}});
 $('#searchToggle').addEventListener('click',()=>{$('#searchWrap').classList.toggle('hidden');$('#searchInput').focus()});$('#searchInput').addEventListener('input',renderHome);['exploreSearch','countryFilter','cityFilter','priceFilter','returnFilter'].forEach(id=>$('#'+id).addEventListener('input',renderExplore));$('#clearFilters').addEventListener('click',()=>{['exploreSearch','countryFilter','cityFilter','priceFilter','returnFilter'].forEach(id=>$('#'+id).value='');renderExplore()});$('#rankingType').addEventListener('change',()=>{rankingOptions($('#rankingType').value);renderRankings()});$('#rankingCriterion').addEventListener('change',renderRankings);const accountWrap = $('.account-wrap');
 const profileToggle = $('#profileToggle');
 const accountMenu = $('#accountMenu');
 
 profileToggle.addEventListener('click', event => {
+  event.preventDefault();
   event.stopPropagation();
   accountMenu.classList.toggle('hidden');
 });
@@ -282,5 +234,13 @@ document.addEventListener('click', event => {
   if (!accountWrap.contains(event.target)) {
     accountMenu.classList.add('hidden');
   }
-});$('#placeTypeSelect').addEventListener('change',renderCriteria);$('#nextStep').addEventListener('click',()=>{if(currentStep===0){for(const n of ['name','date','city','country'])if(!$('#placeForm').elements[n].value.trim())return showToast('Completa los datos principales')}currentStep=Math.min(3,currentStep+1);updateStep()});$('#prevStep').addEventListener('click',()=>{currentStep=Math.max(0,currentStep-1);updateStep()});$('#placeForm').addEventListener('submit',submitPlace);$('#choosePhotos').addEventListener('click',()=>$('#photoInput').click());$('#photoInput').addEventListener('change',e=>handleFiles(e.target.files));$('#uploadZone').addEventListener('dragover',e=>e.preventDefault());$('#uploadZone').addEventListener('drop',e=>{e.preventDefault();handleFiles(e.dataTransfer.files)});
+});$('#pricePicker').addEventListener('click', event => {
+  const button = event.target.closest('[data-price]');
+  if (!button) return;
+  event.preventDefault();
+  event.stopPropagation();
+  setPrice(button.dataset.price);
+});
+
+$('#placeTypeSelect').addEventListener('change',renderCriteria);$('#nextStep').addEventListener('click',()=>{if(currentStep===0){for(const n of ['name','date','city','country'])if(!$('#placeForm').elements[n].value.trim())return showToast('Completa los datos principales')}currentStep=Math.min(3,currentStep+1);updateStep()});$('#prevStep').addEventListener('click',()=>{currentStep=Math.max(0,currentStep-1);updateStep()});$('#placeForm').addEventListener('submit',submitPlace);$('#choosePhotos').addEventListener('click',()=>$('#photoInput').click());$('#photoInput').addEventListener('change',e=>handleFiles(e.target.files));$('#uploadZone').addEventListener('dragover',e=>e.preventDefault());$('#uploadZone').addEventListener('drop',e=>{e.preventDefault();handleFiles(e.dataTransfer.files)});
 init();

@@ -183,10 +183,11 @@
       </div>
 
       <div class="form-step" data-step="3">
-        <label>Nivel de precio
-          <div class="price-picker" id="pricePicker"></div>
+        <div class="form-field">
+          <span class="field-label">Nivel de precio</span>
+          <div class="price-picker" id="pricePicker" role="group" aria-label="Nivel de precio"></div>
           <input type="hidden" name="priceLevel" value="3" />
-        </label>
+        </div>
         <label>Precio total aproximado (€)<input name="actualPrice" type="number" min="0" step="0.01" placeholder="Opcional" /></label>
         <label>Comentario general<textarea name="comment" rows="4" placeholder="Lo que queréis recordar de este lugar"></textarea></label>
         <label>¿Volveríamos?
