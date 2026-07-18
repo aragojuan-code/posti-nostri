@@ -161,7 +161,7 @@ async function submitPlace(e) {
         const {error}=await sb.from('places').update(payload).eq('id',id);if(error)throw error;
       }
     }else{
-      const payload={name:f.get('name').trim(),type:placeType,city:f.get('city').trim(),country:f.get('country').trim(),visited_at:f.get('date'),maps_url:f.get('mapsUrl').trim()||null,actual_price_eur:f.get('actualPrice')?Number(f.get('actualPrice')):null,comment:review.comment,price_level:review.price_level,would_return:review.would_return,created_by:session.user.id};
+      const payload={name:f.get('name').trim(),type:placeType,city:f.get('city').trim(),country:f.get('country').trim(),visited_at:f.get('date'),maps_url:f.get('mapsUrl').trim()||null,actual_price_eur:f.get('actualPrice')?Number(f.get('actualPrice')):null,created_by:session.user.id};
       const {data,error}=await sb.from('places').insert(payload).select('id').single();if(error)throw error;id=data.id;
     }
     const {error:reviewError}=await sb.from('place_reviews').upsert({place_id:id,user_id:session.user.id,...review},{onConflict:'place_id,user_id'});if(reviewError)throw reviewError;
@@ -195,7 +195,9 @@ function openDetail(id){
 async function deletePlace(id){if(!confirm('¿Eliminar este lugar?'))return;setBusy(true,'Eliminando…');const p=places.find(x=>x.id===id);if(p?.photos.length)await sb.storage.from('place-photos').remove(p.photos.map(x=>x.path));const {error}=await sb.from('places').delete().eq('id',id);setBusy(false);if(error)return showToast(error.message);$('#detailDialog').close();await loadPlaces();renderAll();showToast('Lugar eliminado')}
 
 $('#authForm').addEventListener('submit',async e=>{e.preventDefault();const fd=new FormData(e.currentTarget);$('#authError').textContent='';const {data,error}=await sb.auth.signInWithPassword({email:fd.get('email'),password:fd.get('password')});if(error){$('#authError').textContent='Correo o contraseña incorrectos';return}await enterApp(data.session)});
-$('#logoutBtn').addEventListener('click',async()=>{await sb.auth.signOut();showAuth()});
+async function logout(){await sb.auth.signOut();showAuth()}
+$('#logoutBtn').addEventListener('click',logout);
+$('#pendingLogoutBtn').addEventListener('click',logout);
 document.addEventListener('click',e=>{const nav=e.target.closest('[data-nav]');if(nav)navigate(nav.dataset.nav);if(e.target.closest('[data-action="add-place"]'))openForm();const card=e.target.closest('[data-place-id]');if(card)openDetail(card.dataset.placeId);const chip=e.target.closest('[data-type]');if(chip){activeType=chip.dataset.type;renderTypeControls();renderHome()}const close=e.target.closest('[data-close]');if(close)document.getElementById(close.dataset.close).close();const star=e.target.closest('.star');if(star){const c=star.parentElement.dataset.criterion,pk=currentPerson();formRatings[pk][c]=formRatings[pk][c]||{score:0,note:''};formRatings[pk][c].score=Number(star.dataset.score);renderCriteria()}const nt=e.target.closest('[data-note-toggle]');if(nt)$(`[data-note="${CSS.escape(nt.dataset.noteToggle)}"]`).classList.toggle('visible');const rt=e.target.closest('#returnPicker [data-value]');if(rt)setReturn(rt.dataset.value);const re=e.target.closest('[data-remove-existing]');if(re){formPhotos.splice(Number(re.dataset.removeExisting),1);renderPhotos()}const rn=e.target.closest('[data-remove-new]');if(rn){newPhotoFiles.splice(Number(rn.dataset.removeNew),1);renderPhotos()}const ed=e.target.closest('[data-edit-place]');if(ed){$('#detailDialog').close();openForm(places.find(p=>p.id===ed.dataset.editPlace))}const del=e.target.closest('[data-delete-place]');if(del)deletePlace(del.dataset.deletePlace)});
 document.addEventListener('input',e=>{if(e.target.matches('[data-note]')){const pk=currentPerson(),c=e.target.dataset.note;formRatings[pk][c]=formRatings[pk][c]||{score:0,note:''};formRatings[pk][c].note=e.target.value}});
 $('#searchToggle').addEventListener('click',()=>{$('#searchWrap').classList.toggle('hidden');$('#searchInput').focus()});
@@ -207,6 +209,10 @@ const accountMenu = $('#accountMenu');
 profileToggle.addEventListener('click', event => {
   event.preventDefault();
   event.stopPropagation();
+  if (pendingPlaces().length > 0) {
+    openPendingRatings();
+    return;
+  }
   accountMenu.classList.toggle('hidden');
 });
 
