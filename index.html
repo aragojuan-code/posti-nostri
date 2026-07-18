@@ -38,6 +38,7 @@
       <div class="top-actions">
         <button class="icon-btn" id="searchToggle" aria-label="Buscar">⌕</button>
         <div class="account-wrap">
+        <button id="pendingBadge" class="pending-badge hidden" type="button" aria-label="Valoraciones pendientes"></button>
         <button class="profile-pill" id="profileToggle" aria-label="Cuenta">
           <span id="activeProfileInitial">J</span>
           <span id="activeProfileName">Juan</span>
@@ -82,7 +83,11 @@
       <section id="exploreView" class="view">
         <div class="page-heading">
           <p class="eyebrow">Explorar</p>
-          <h1>Encuentra un recuerdo</h1>
+          <h1 id="exploreTitle">Encuentra un recuerdo</h1>
+        </div>
+        <div id="pendingFilterBanner" class="pending-filter-banner hidden">
+          <div><strong>Valoraciones pendientes</strong><span><span id="pendingFilterCount">0</span> por completar</span></div>
+          <button id="clearPendingFilter" class="text-btn" type="button">Ver todos</button>
         </div>
         <div class="filter-panel">
           <input id="exploreSearch" type="search" placeholder="Nombre, ciudad o país" />
@@ -184,7 +189,7 @@
 
       <div class="form-step" data-step="3">
         <fieldset class="form-field price-field">
-          <legend class="field-label">Nivel de precio</legend>
+          <legend class="field-label">Tu percepción del precio</legend>
           <div class="price-picker" id="pricePicker" role="radiogroup" aria-label="Nivel de precio">
             <label class="price-option">
               <input type="radio" name="priceLevel" value="1" />
@@ -208,9 +213,9 @@
             </label>
           </div>
         </fieldset>
-        <label>Precio total aproximado (€)<input name="actualPrice" type="number" min="0" step="0.01" placeholder="Opcional" /></label>
-        <label>Comentario general<textarea name="comment" rows="4" placeholder="Lo que queréis recordar de este lugar"></textarea></label>
-        <label>¿Volveríamos?
+        <label id="actualPriceField">Precio total aproximado (€)<input name="actualPrice" type="number" min="0" step="0.01" placeholder="Opcional" /></label>
+        <label>Tu comentario<textarea name="comment" rows="4" placeholder="Lo que quieres recordar de este lugar"></textarea></label>
+        <label>¿Volverías?
           <div class="segmented" id="returnPicker">
             <button type="button" data-value="yes">Sí</button>
             <button type="button" data-value="maybe" class="active">Quizá</button>
